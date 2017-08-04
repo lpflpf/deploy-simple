@@ -1,0 +1,13 @@
+{
+  "name": "lpf/DeployerSimple",
+  "type": "project",
+  "authors": [
+    {
+      "name": "lipengfeijs",
+      "email": "lipengfeijs@dangdang.com"
+    }
+  ],
+  "require": {
+    "twig/twig" : "v2.4.3"
+  }
+}

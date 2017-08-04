@@ -1,0 +1,68 @@
+.container {
+    width: 600px;
+}
+
+.form-div {
+    margin: 0 auto;
+    width: 800px;
+    border: 0;
+}
+
+.center {
+    text-align: center;
+}
+
+.layui-code-h3 {
+    display: none
+}
+
+.sites-h1 {
+    margin-bottom: 20px;
+    line-height: 60px;
+    padding-bottom: 10px;
+    color: #393D49;
+    border-bottom: 1px solid #eee;
+    font-size: 28px;
+    font-weight: 300;
+}
+
+.record-show {
+    float: left;
+    width: 590px;
+    margin-left: 10px;
+    line-height: 25px;
+}
+
+.record-show p b {
+    color: brown
+}
+
+.footer {
+    width: 100%;
+    position: fixed;
+    top: 0;
+    overflow: hidden;
+    margin-left: -400px;
+}
+
+.left-div {
+    margin-left: 810px;
+    position: fixed;
+    bottom: 30px;
+
+}
+
+.left-div p button {
+    margin-bottom: 15px;
+    bottom: 30px;
+}
+
+.sync-result div {
+    width: 250px;
+    float: left;
+}
+
+.sync-result div b {
+    color: crimson;
+    margin-right:10px;
+}

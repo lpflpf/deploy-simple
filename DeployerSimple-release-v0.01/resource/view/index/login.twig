@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>配置管理-登录</title>
+    <link rel="stylesheet" href="/css/layui.css">
+    <link rel="stylesheet" href="/css/login.css">
+    <script src="/layui/layui.js"></script>
+</head>
+<body>
+<div class="clear box layui-main login">
+    <form class="layui-form layui-form-pane1" action="/index/doLogin" method="post">
+        <div class="layui-form-item">
+            <label class="layui-form-label"><b>用户名：</b></label>
+            <div class="layui-input-block">
+                <input type="text" name="username" lay-verify="uname" required placeholder="请输入用户名" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label"><b>密码：</b></label>
+            <div class="layui-input-block">
+                <input type="password" name="password" lay-verify="" required
+                       placeholder="请输入密码" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label"></label>
+            <button class="layui-btn layui-btn-normal btn-center" type="submit">登录</button>
+        </div>
+    </form>
+</div>
+<script>
+    var status = {{ status | default(0) }};
+    var message = "{{ message | default('') }}";
+    setTimeout(function () {
+        if (status > 0) {
+            layui.use('layer', function () {
+                var layer = layui.layer;
+                switch (status) {
+                    case 1:
+                        success(layer, message);
+                        break;
+                    default:
+                        failed(layer, message);
+                }
+            });
+        }
+
+        function success(layer, message) {
+            layer.msg(message);
+        }
+
+        function failed(layer, message) {
+            layer.open({
+                type: 1,
+                title: false,
+                closeBtn: true,
+                area: '300px',
+                shade: 0.6,
+                btn: ['确认'],
+                moveType: 0,
+                content: '<div style="padding: 50px; line-height:22px; background-color:#393D49; color:#fff; font-weight:300;">' +
+                message + "</div>"
+            });
+        }
+    })
+</script>
+</body>
+</html>

@@ -1,0 +1,296 @@
+{% extends "layout.twig" %}
+{% block dependencies %}
+    <link rel="stylesheet" href="/css/codemirror.css">
+    <link rel="stylesheet" href="/css/fullscreen.css">
+    <link rel="stylesheet" href="/css/solarized.css">
+    <script src="/js/codemirror.js"></script>
+    <script src="/js/fullscreen.js"></script>
+    <script src="/js/properties.js"></script>
+    <script src="/js/shell.js"></script>
+    <script src="/js/php.js"></script>
+    <script src="/js/clike.js"></script>
+    <script src="/js/xml.js"></script>
+    <script src="/js/javascript.js"></script>
+    <script src="/js/css.js"></script>
+    <script src="/js/htmlmixed.js"></script>
+    <script src="/js/htmlembedded.js"></script>
+{% endblock %}
+
+{% block container %}
+<div class="layui-main container">
+    <fieldset style="width:400px;height:80%;padding:10px;border:1px solid #dddddd;text-align:initial;float:left;margin-left:-450px;">
+        <legend>选择文件</legend>
+        <ul id="file-select"></ul>
+    </fieldset>
+    <div class="form-div">
+        <fieldset class="layui-elem-field layui-field-title ">
+            <legend>简单模式</legend>
+        </fieldset>
+        <blockquote class="layui-elem-quote">
+            简单模式配置修改和同步。<b style="color:red">仅同步最后编辑的配置文件。</b>
+        </blockquote>
+
+        <div style="float:left;width:100%">
+            <form class="layui-form" action="/flow/doAdd" id="form" method="post">
+
+                <div class="layui-form-item">
+                    <label class="layui-form-label">集群名称</label>
+                    <div class="layui-input-block">
+                        <select name="cluster-id" lay-verify="required" class="J-select-node" lay-filter="cluster-select">
+                            <option value=""></option>
+                            {% for key, cluster in clusters %}
+                                <option value="{{ cluster['id'] }}">{{ cluster['name'] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </form>
+
+            <div class="layui-form-item layui-form-text" style="padding-top:20px;">
+                <textarea id="file-editor" name="command" placeholder="" class="layui-textarea" style="height:400px;display:none;"></textarea>
+            </div>
+            <fieldset id="syncResult" class="center sync-result layui-element-field" style="display:none">
+                <legend>同步结果</legend>
+            </fieldset>
+        </div>
+    </div>
+    <div class="left-div">
+        <p>
+            <button class="layui-btn layui-btn-primary layui-btn-radius" id="uploadFile">上传配置</button>
+        </p>
+        <p>
+            <button class="layui-btn layui-btn-primary layui-btn-radius" id="syncConfig">同步配置</button>
+        </p>
+        <p>
+            <button class="layui-btn layui-btn-primary layui-btn-radius" id="restartProc">重启进程</button>
+        </p>
+        <p>
+            <a class="layui-btn layui-btn-primary layui-btn-radius" href="/record/index" target="_blank">查看结果</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block script %}
+    <script>
+        layui.use(['form', 'layer', 'element', 'code', 'tree'], function () {
+            var form = layui.form();
+            var $ = layui.jquery;
+            var layer = layui.layer;
+            var element = layui.element();
+            var currentFileName = '';
+            var currentClusterId = '';
+            var editorTextAreaNode = $("#file-editor");
+            var syncResult = $("#syncResult");
+            var currentItem = '';
+            var editor;
+
+            form.on("select(cluster-select)", function (data) {
+                currentClusterId = data.value;
+            });
+
+            // 点击上传配置
+            $("#uploadFile").click(function () {
+                clearSyncResult();
+                if (currentItem === '') {
+                    openLayer('未选择配置文件');
+                    return;
+                }
+                if (currentItem.type === 'php') {
+                    checkSyntax(write);
+                } else {
+                    write();
+                }
+
+                // 检查php 语法
+                function checkSyntax(after) {
+                    $.post('/deploy/checkSyntax', {
+                        content: editor.getValue()
+                    }, function (response) {
+                        response = $.parseJSON(response);
+                        if (response.status !== 0) {
+                            openLayer("语法检查失败!");
+                            return;
+                        }
+                        after();
+                    })
+                }
+
+                // 将编辑文件上传
+                function write() {
+                    $.post('/file/write', {
+                        name: currentItem.name
+                        , dir: currentItem.path
+                        , content: editor.getValue()
+                    }, function (html) {
+                        $(".CodeMirror").remove();
+                        openLayer('写入文件成功，可在服务器相应目录查找备份文件');
+                        editorTextAreaNode.html(html).show().attr("disabled", "disabled");
+                    });
+                }
+            });
+
+            // 点击同步配置
+            $("#syncConfig").click(function () {
+                clearSyncResult();
+                if (currentItem === '') {
+                    openLayer('未选择配置文件');
+                    return;
+                }
+
+                getIpList(rsync);
+
+            });
+
+            // 同步执行
+            $("#restartProc").click(function () {
+                clearSyncResult();
+                if (currentItem === '') {
+                    openLayer('未选择配置文件');
+                    return;
+                }
+
+                getIpList(restart);
+
+            });
+
+            layui.tree({
+                elem: '#file-select'
+                , nodes: {{ dir | raw }}
+                , click: function (item) {
+                    clearSyncResult();
+                    currentItem = item;
+                    currentItem.type = getFileMode(item.name);
+                    $.get('/file/get', {
+                        name: item.name
+                        , dir: item.path
+                    }, function (data) {
+                        // 移除codeMirror 节点
+                        $(".CodeMirror").remove();
+                        // 填充数据
+                        $("#file-editor").show().html(data);
+
+                        // 新建codeMirror
+                        editor = newTextArea('file-editor', currentItem.type);
+                        editor.setSize('auto', '450px');
+                    });
+                }
+            });
+
+            function clearSyncResult() {
+                syncResult.hide();
+                syncResult.find("div").remove();
+            }
+
+            /**
+             * 通过文件后缀获取codeMirror的mode
+             *  @param name
+             */
+            function getFileMode(name) {
+                if (name.indexOf('.php') >= 0 || name.indexOf('.inc') >= 0) {
+                    return 'php';
+                }
+                if (name.indexOf('.properties') >= 0 || name.indexOf('.ini') >= 0) {
+                    return 'ini';
+                }
+
+                return 'default';
+            }
+
+            /**
+             * 新建代码编辑器
+             */
+            function newTextArea(id, mode) {
+                return CodeMirror.fromTextArea(document.getElementById(id), {
+                        mode: mode,
+                        theme: 'solarized',
+                        lineNumbers: true,
+                        indentUnit: 4,
+                        extraKeys: {
+                            "F11": function (cm) {
+                                cm.setOption("fullScreen", !cm.getOption("fullScreen"));
+                            },
+                            "Esc": function (cm) {
+                                if (cm.getOption("fullScreen")) cm.setOption("fullScreen", false);
+                            }
+                        }
+                    }
+                );
+            }
+
+            /**
+             * open Dialog.
+             * @param text
+             */
+            function openLayer(text) {
+                layer.open({
+                    type: 1
+//                    ,offset: type
+                    , id: 'failed'
+                    , content: '<div style="padding: 20px 100px;">' + text + '</div>'
+                    , btn: '关闭'
+                    , btnAlign: 'c'
+                    , shade: 0
+                    , yes: function () {
+                        layer.closeAll();
+                    }
+                });
+            }
+
+            function rsync(ipList) {
+                syncResult.show();
+                $.each(ipList, function (idx, ip) {
+                    $.getJSON('/deploy/exec', {
+                        ip: ip
+                        , batchId: "rsync_" + (new Date()).valueOf()
+                        , type: 1
+                        , fileName: currentItem.name
+                        , dirName: currentItem.path
+                    }, function (response) {
+                        var result = response.status === 0 ? '同步成功' : '同步失败';
+                        syncResult.append("<div><b>" + ip + "</b>" + result + "</div>");
+                        editorTextAreaNode.text('机器' + ip + "------------------------\n" + response.data);
+                    });
+                });
+            }
+
+            function getIpList(callback) {
+                $.getJSON('/cluster/getIpList', {
+                    cluster_id: currentClusterId
+                }, function (response) {
+                    var ipList = response.data;
+                    if (ipList.length === 0) {
+                        openLayer('ip 列表是空');
+                        return;
+                    }
+                    callback(ipList)
+                });
+            }
+
+            var globalIps;
+            function restart(ips) {
+                var ip = ips.pop();
+                syncResult.show();
+                globalIps = ips;
+                $.getJSON('/deploy/exec', {
+                    ip: ip
+                    , batchId: "rsync_" + (new Date()).valueOf()
+                    , type: 2
+                    , commandType: currentItem.type
+                    , fileName: currentItem.name
+                    , dirName: currentItem.path
+                }, function (response) {
+                    var result = response.status === 0 ? '重启成功' : '重启失败';
+                    syncResult.append("<div><b>" + ip + "</b>" + result + "</div>");
+                    editorTextAreaNode.text('机器' + ip + "------------------------\n" + response.data);
+
+                    if (globalIps.length === 0) {
+                        return;
+                    }
+                    restart(globalIps);
+                });
+            }
+        });
+
+    </script>
+{% endblock %}

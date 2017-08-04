@@ -1,0 +1,81 @@
+{% extends "layout.twig" %}
+{% block dependencies %}
+
+{% endblock %}
+
+{% block container %}
+    <div class="layui-main ">
+        <div class="form-div">
+            <fieldset class="layui-elem-field layui-field-title ">
+                <legend>命令执行记录</legend>
+            </fieldset>
+            <blockquote class="layui-elem-quote">
+                <p>执行记录记录了执行命令的<b style="color:red">批处理ID</b>、<b style="color:red">执行机器的IP</b>、<b style="color:red">执行人的ip</b>
+                    <b style="color:red">执行时间</b>、<b style="color:red">执行是否成功</b>、<b style="color:red">执行结果</b>。</p>
+                <p>点击详情可查看<b style="color:darkgreen"> 执行输出结果</b></p>
+            </blockquote>
+
+            <div style="float:left; width: 790px; margin-left: 10px;">
+                <table class="layui-table">
+                    <colgroup>
+                        <col width="200">
+                        <col width="150">
+                        <col width="150">
+                        <col width="100">
+                        <col width="100">
+                        <col width="100">
+                    </colgroup>
+                    <thead>
+                    <tr>
+                        <th>批处理ID</th>
+                        <th>执行时间（ms）</th>
+                        <th>执行人IP</th>
+                        <th>执行机器的IP</th>
+                        <th>是否成功</th>
+                        <th>执行详情</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for record in records %}
+                        <tr>
+                            <td>{{ record['batch_id'] }}</td>
+                            <td>{{ record['exec_time'] }}</td>
+                            <td>{{ record['user_ip'] }}</td>
+                            <td>{{ record['exec_ip'] }}</td>
+                            <td>{{ record['exec_status'] == '0' ? '<b style="color:darkgreen">成功</b>' : '<b style="color:red">失败</b>' }}</td>
+                            <td><a href="/record/get?id={{ record['id'] }}" target="_blank">详情</a></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <div id="paging" class="center"></div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+
+{% block script %}
+    <script>
+        layui.use(['form', 'laypage'], function () {
+            var form = layui.form();
+            var $ = layui.jquery;
+            var laypage = layui.laypage;
+            var count = {{ count }};
+
+            laypage({
+                cont: "paging"
+                , pages: Math.ceil(count / 10.0)
+                , skin: "#1E9FFF"
+                , curr: {{ current }}
+                , jump: function (obj, first) {
+                    if (!first) {
+                        var curr = obj.curr;
+                        window.location.href = '/record/index/?page=' + curr;
+                    }
+                }
+            });
+        });
+
+    </script>
+{% endblock %}

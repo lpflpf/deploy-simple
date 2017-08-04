@@ -1,0 +1,51 @@
+{% extends "layout.twig" %}
+{% block dependencies %}
+    <script src="/js/codemirror.js"></script>
+    <script src="/js/shell.js"></script>
+    <script src="/js/matchbrackets.js"></script>
+    <link rel="stylesheet" href="/css/codemirror.css">
+
+{% endblock %}
+
+
+{% block container %}
+    <div class="form-div">
+        <fieldset class="layui-elem-field layui-field-title ">
+            <legend>命令执行记录</legend>
+        </fieldset>
+        <blockquote class="layui-elem-quote">
+            执行记录记录了执行命令的<b style="color:red">执行名称</b>、<b style="color:red">流程名称</b>、<b style="color:red">执行人的ip</b>
+            <b style="color:red">执行时间</b>、<b style="color:red">命令</b>、<b style="color:red">执行结果</b>
+        </blockquote>
+
+        <div class="record-show">
+            <p><b>执行时间</b>： {{ record['creation_date'] }} </p>
+            <p><b>运行时间</b>： {{ record['exec_time'] }}</p>
+            <p><b>用户IP</b>：{{ record['user_ip'] }}</p>
+            <p><b>批处理ID</b>：{{ record['batch_id'] }}</p>
+            <p><b>执行机器IP</b>：{{ record['exec_ip'] }}</p>
+            <p><b>命令详情</b>：</p>
+            <div class="layui-field-box"><textarea id="command-show">{{ record['cmd'] }}</textarea>
+            </div>
+            <p><b>执行结果</b>：</p>
+            <textarea class="layui-textarea" disabled="disabled" style="height:200px;width:780px;margin-left:15px">{{ record['result'] }}</textarea>
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+    <script>
+        var editor = CodeMirror.fromTextArea(document.getElementById('command-show'), {
+            mode: 'shell'
+            , lineNumbers: true
+            , matchBrackets: true
+            , indentUnit: 4
+            , readOnly: true
+        });
+
+        editor.setSize('780px', '150px');
+
+
+    </script>
+{% endblock %}
+

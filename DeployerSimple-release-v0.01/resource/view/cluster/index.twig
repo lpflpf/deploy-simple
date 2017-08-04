@@ -1,0 +1,164 @@
+{% extends "layout.twig" %}
+{% block container %}
+    <div class="form-div">
+        <fieldset class="layui-elem-field layui-field-title">
+            <legend>集群编辑</legend>
+        </fieldset>
+        <script>
+            var status = {{ status }};
+            var message = "{{ message }}";
+        </script>
+
+        <br>
+        <div class="layui-tab" lay-filter="cluster-tab">
+            <ul class="layui-tab-title">
+                <li class="layui-tab-title" lay-id="1">添加集群</li>
+                <li lay-id="2">删除集群</li>
+                <li lay-id="3">更新集群</li>
+            </ul>
+            <div class="layui-tab-content">
+                <div class="layui-tab-item layui-show">
+                    <form class="layui-form" action="/cluster/add" method="post">
+                        <div class="layui-form-item">
+                            <label class="layui-form-label">集群名称</label>
+                            <div class="layui-input-block">
+                                <input type="text" name="cluster-name" required autocomplete="off" placeholder="集群名称" class="layui-input">
+                            </div>
+                        </div>
+                        <div class="layui-form-item layui-form-text">
+                            <label class="layui-form-label">机器ip</label>
+                            <div class="layui-input-block">
+                                <textarea name="ip-list" placeholder="ip 列表" class="layui-textarea" style="height:300px"></textarea>
+                            </div>
+                        </div>
+                        <div class="layui-form-item">
+                            <div class="layui-input-block center">
+                                <button class="layui-btn" lay-submit lay-filter="formSubmit">立即提交</button>
+                                <button type="reset" class="layui-btn layui-btn-primary">重置</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="layui-tab-item">
+                    <form class="layui-form" action="/cluster/delete" method="post">
+                        <div class="layui-form-item">
+                            <label class="layui-form-label">选择集群</label>
+                            <div class="layui-input-block">
+                                <select name="cluster-id" lay-verify="required">
+                                    <option value="0"></option>
+                                    {% for key, cluster in clusters %}
+                                        <option value="{{ cluster['id'] }}">{{ cluster['name'] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="layui-form-item">
+                            <div class="layui-input-block center">
+                                <button class="layui-btn" lay-submit lay-filter="formSubmit">立即删除</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="layui-tab-item">
+                    <form class="layui-form" action="/cluster/update" method="post">
+                        <div class="layui-form-item">
+                            <label class="layui-form-label">选择集群</label>
+                            <div class="layui-input-block">
+                                <select name="cluster-id" lay-verify="required" class="J-select-node" lay-filter="update">
+                                    <option value="0"></option>
+                                    {% for key, cluster in clusters %}
+                                        <option value="{{ cluster['id'] }}">{{ cluster['name'] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="layui-form-item layui-form-text">
+                            <label class="layui-form-label">机器ip</label>
+                            <div class="layui-input-block">
+                                <textarea name="ip-list" style="height:300px" placeholder="ip 列表" class="layui-textarea" id="update-ip-list"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="layui-form-item">
+                            <div class="layui-input-block center">
+                                <button class="layui-btn" lay-submit lay-filter="formSubmit">立即更新</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+
+    <script>
+        layui.use(['element', 'form'], function () {
+            var element = layui.element();
+            var form = layui.form();
+            var $ = layui.jquery;
+            form.on('select(update)',function(data) {
+                $.getJSON('/cluster/getIpList', {
+                    cluster_id: data.value
+                }, function(data){
+                    var html = '';
+
+                    $.each(data.data, function(idx,item){
+                        html += item + '\n';
+                    });
+                    $("#update-ip-list").val(html);
+                });
+            });
+
+            var layId = location.hash.replace(/^#cluster-tab=/, '');
+
+            element.tabChange('cluster-tab', layId);
+
+            element.on('tab(cluster-tab)', function () {
+                location.hash = 'cluster-tab=' + this.getAttribute('lay-id');
+            });
+
+            $(document).bind("keydown", function(e){
+                e = window.event || e;
+                if (e.keyCode === 116){
+                    return false;
+                }
+            });
+        });
+
+        setTimeout(function () {
+            if (status > 0) {
+                layui.use('layer', function () {
+                    var layer = layui.layer;
+                    switch (status) {
+                        case 1:
+                            success(layer, message);
+                            break;
+                        default:
+                            failed(layer, message);
+                    }
+                });
+            }
+
+            function success(layer, message) {
+                layer.msg(message);
+            }
+
+            function failed(layer, message) {
+                layer.open({
+                    type: 1,
+                    title: false,
+                    closeBtn: true,
+                    area: '300px',
+                    shade: 0.6,
+                    btn: ['确认'],
+                    moveType: 0,
+                    content: '<div style="padding: 50px; line-height:22px; background-color:#393D49; color:#fff; font-weight:300;">' +
+                    message + "</div>"
+                });
+            }
+        })
+    </script>
+{% endblock %}
